@@ -3,7 +3,7 @@
   <Document name="dc-mais.ZPM">
     <Module>
       <Name>dc-mais</Name>
-      <Version>0.0.1</Version>
+      <Version>0.0.2</Version>
       <Description>MAIS</Description>
       <Packaging>module</Packaging>
       <SourcesRoot>src</SourcesRoot>
