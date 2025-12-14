@@ -1,3 +1,5 @@
+Include Ensemble
+
 Class dc.mais.adapter.LLM Extends Ens.OutboundAdapter
 {
 
@@ -5,7 +7,7 @@ Class dc.mais.adapter.LLM Extends Ens.OutboundAdapter
 Parameter SETTINGS = "APIKeysConfig:Basic:textarea?rows=5&cols=50,BaseURL,Timeout,DefaultModel,MaxRetries,RetryDelay";
 
 /// JSON configuration for API keys in LiteLLM format
-/// Example: {"OPENAI_API_KEY":"sk-...","ANTHROPIC_API_KEY":"sk-ant-...","COHERE_API_KEY":"..."}
+/// Example:OPENAI_API_KEY,ANTHROPIC_API_KEY,COHERE_API_KEY
 Property APIKeysConfig As %String(MAXLEN = "");
 
 /// Base URL for LiteLLM API (optional - for proxy mode)
@@ -44,12 +46,15 @@ Method OnInit() As %Status
         // Set API keys from configuration
         If ..APIKeysConfig '= "" {
             Try {
-                Set tKeyConfig = {}.%FromJSON(..APIKeysConfig)
+                Set tKeyConfig = $ListFromString(..APIKeysConfig,",")
             } Catch(e) {
                 Throw ##class(%Exception.General).%New("Error on parsing APIKeysConfig config. As this parameter expects a valid JSON, please check if the provided value is a valid one.")
             }
-            Set tKeyIter = tKeyConfig.%GetIterator()
-            While tKeyIter.%GetNext(.tKeyName, .tKeyValue) {
+            Set pointer = 0
+            While $ListNext(tKeyConfig, pointer, tKeyName) {
+                Set credential = ##class(Ens.Config.Credentials).%OpenId(tKeyName)
+                Continue:(credential="")
+                Set tKeyValue = credential.PasswordGet()
                 Do ..os.environ."__setitem__"(tKeyName, tKeyValue)
             }
         }
@@ -74,6 +79,7 @@ Method CallLiteLLM(pRequest As dc.mais.messages.LLMRequest, Output pResponse As 
 
     Set pResponse = ##class(dc.mais.messages.LLMResponse).%New()
     Set litellm = ..GetLiteLLMInstance(pRequest)
+    $$$TRACE("here")
     
     While tAttempt <= ..MaxRetries {
         Set tAttempt = tAttempt + 1
@@ -81,7 +87,13 @@ Method CallLiteLLM(pRequest As dc.mais.messages.LLMRequest, Output pResponse As 
         Try {
             // Call LiteLLM
             Set model = $Select(pRequest.Model '= "": pRequest.Model, 1: ..GetDefaultModel())
-            Set messages = ..json.loads(pRequest.Messages)
+            Set json = [].%FromJSON(pRequest.History)
+            Set:(json="") json = []
+            $$$TRACE(json.%ToJSON())
+            Do json.%Push({"role": "user", "content": (pRequest.Content)})
+            Do:(pRequest.UserContent'="") json.%Push({"role": "user", "content": (pRequest.UserContent)})
+            Set messages = ..json.loads(json.%ToJSON())
+
             Set tResponse = litellm.completion(model, messages)
         
             // Map to our response object
