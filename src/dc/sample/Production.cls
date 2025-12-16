@@ -3,7 +3,7 @@ Class dc.sample.Production Extends Ens.Production
 
 XData ProductionDefinition
 {
-<Production Name="dc.sample.prd" TestingEnabled="true" LogGeneralTraceEvents="true">
+<Production Name="dc.sample.Production" TestingEnabled="true" LogGeneralTraceEvents="true">
   <Description></Description>
   <ActorPoolSize>2</ActorPoolSize>
   <Item Name="LLM" Category="" ClassName="dc.mais.operation.LLM" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="true" Schedule="">
@@ -44,6 +44,18 @@ XData ProductionDefinition
 - Identify when customer is ready to order
 - Handoff to OrderTaker when customer decides what to order</Setting>
     <Setting Target="Adapter" Name="Target">order_taker</Setting>
+    <Setting Target="Adapter" Name="Tools">[{
+        "type": "function",
+        "function": {
+            "name": "get_menu",
+            "description": "Get the full bistro menu",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
+        }
+    }]</Setting>
   </Item>
   <Item Name="Orchestrator" Category="" ClassName="dc.sample.process.Orchestrator" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
   </Item>
