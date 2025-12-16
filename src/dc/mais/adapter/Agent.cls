@@ -44,7 +44,6 @@ Method GetAgentInstructions(Output oPrompt As %String) As %String
         Set:(..Role '= "") prompt = prompt_"## Your Role: "_..Role_$C(10)
         Set:(..Goal '= "") prompt = prompt_"## Your Goal: "_..Goal_$C(10)
         Set:(..Tasks '= "") prompt = prompt_"## Your tasks: "_..Tasks_$C(10)
-        Set:(..Tools '= "") prompt = prompt_"## Available tools: "_..Tools_$C(10)
         Set:(..OutputInstructions'= "") prompt = prompt_"## Output Instructions: "_..OutputInstructions_$C(10)
         Set oPrompt = prompt_"# Remember: You are part of a multi-agent system. "
     ;Use the handoff_to_agent tool to transfer control when appropriate"

@@ -18,6 +18,7 @@ Method Process(pRequest As dc.mais.messages.AgentRequest, Output oResponse As dc
         // Call the adapter
         $$$ThrowOnError(..Adapter.GetAgentInstructions(.prompt))
         Set oResponse.Content = prompt
+        Set oResponse.Tools = ..Adapter.Tools
     }
     Catch e {
         Set tSC = e.AsStatus()
