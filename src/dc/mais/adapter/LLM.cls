@@ -79,7 +79,6 @@ Method CallLiteLLM(pRequest As dc.mais.messages.LLMRequest, Output pResponse As 
 
     Set pResponse = ##class(dc.mais.messages.LLMResponse).%New()
     Set litellm = ..GetLiteLLMInstance(pRequest)
-    $$$TRACE("here")
     
     While tAttempt <= ..MaxRetries {
         Set tAttempt = tAttempt + 1
@@ -89,12 +88,21 @@ Method CallLiteLLM(pRequest As dc.mais.messages.LLMRequest, Output pResponse As 
             Set model = $Select(pRequest.Model '= "": pRequest.Model, 1: ..GetDefaultModel())
             Set json = [].%FromJSON(pRequest.History)
             Set:(json="") json = []
-            $$$TRACE(json.%ToJSON())
             Do json.%Push({"role": "user", "content": (pRequest.Content)})
             Do:(pRequest.UserContent'="") json.%Push({"role": "user", "content": (pRequest.UserContent)})
             Set messages = ..json.loads(json.%ToJSON())
 
-            Set tResponse = litellm.completion(model, messages)
+            Set kwargs = {}.%New()
+            Do kwargs.%Set("model", model)
+            Do kwargs.%Set("messages", messages)
+            
+            If (pRequest.Parameter '= "") {
+                Set toolsList = ..json.loads(pRequest.Parameter)
+                Do kwargs.%Set("tools", toolsList)
+                Do kwargs.%Set("tool_choice", "auto") 
+                Do kwargs.%Set("drop_params", ##class(%SYS.Python).True()) 
+            }
+            Set tResponse = litellm.completion(kwargs...)
         
             // Map to our response object
             Set pResponse.Model = tResponse.model
@@ -103,6 +111,16 @@ Method CallLiteLLM(pRequest As dc.mais.messages.LLMRequest, Output pResponse As 
                 Do choices.%Push({}.%FromJSON(tResponse.choices."__getitem__"(0)."to_json"()))
             }
             Set pResponse.Choices = choices.%ToJSON()
+            
+            If (choices.%Size()>0) {
+                Set choice = choices.%Get(choices.%Size()-1)
+                If ($IsObject(choice.message)){
+                    Set pResponse.Content = choice.message.content
+                    Set:(choice.message."tool_calls" '="") pResponse.ToolCalls = choice.message."tool_calls".%ToJSON()
+                    Set:(choice.message."function_call" '="") pResponse.FunctionCall = choice.message."function_call".%ToJSON()
+                }
+            }
+
             Set pResponse.Usage = {}.%FromJSON(tResponse.usage."to_json"()).%ToJSON()
             If ..hasattr(tResponse, "error") {
                 Set pResponse.Error = {}.%FromJSON(tResponse.error."to_json"()).%ToJSON()

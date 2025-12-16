@@ -13,6 +13,8 @@ Property UserContent As %String(MAXLEN = "");
 /// Array of messages objects
 Property History As %String(MAXLEN = "");
 
+Property Parameter As %String(MAXLEN = "");
+
 Storage Default
 {
 <Data name="LLMRequestDefaultData">
@@ -28,6 +30,9 @@ Storage Default
 </Value>
 <Value name="4">
 <Value>History</Value>
+</Value>
+<Value name="5">
+<Value>Parameter</Value>
 </Value>
 </Data>
 <DefaultData>LLMRequestDefaultData</DefaultData>
