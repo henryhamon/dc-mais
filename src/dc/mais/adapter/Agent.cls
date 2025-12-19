@@ -45,6 +45,13 @@ Method GetAgentInstructions(Output oPrompt As %String) As %String
         Set:(..Goal '= "") prompt = prompt_"## Your Goal: "_..Goal_$C(10)
         Set:(..Tasks '= "") prompt = prompt_"## Your tasks: "_..Tasks_$C(10)
         Set:(..OutputInstructions'= "") prompt = prompt_"## Output Instructions: "_..OutputInstructions_$C(10)
+        If (..Tools '= "") {
+            Set prompt = prompt_"## Tool Usage Guidelines:"_$C(10)
+            Set prompt = prompt_"- You have access to functions (tools) to get real data."_$C(10)
+            Set prompt = prompt_"- You MUST call the function natively when needed."_$C(10) // "Call natively" é melhor que "Generate JSON"
+            Set prompt = prompt_"- Do NOT guess or invent data. Use the function."_$C(10)
+            Set prompt = prompt_"- NEVER write the function call JSON in the response text. Just trigger the function."_$C(10)
+        }
         Set oPrompt = prompt_"# Remember: You are part of a multi-agent system. "
     ;Use the handoff_to_agent tool to transfer control when appropriate"
     } Catch ex {

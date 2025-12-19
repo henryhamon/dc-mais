@@ -1,4 +1,4 @@
-Class dc.mais.messages.LLMRequest Extends Ens.Request
+Class dc.mais.messages.LLMRequest Extends (Ens.Response, %JSON.Adaptor, %XML.Adaptor)
 {
 
 /// The model to use (e.g., "gpt-4", "claude-2")
@@ -13,6 +13,13 @@ Property UserContent As %String(MAXLEN = "");
 /// Array of messages objects
 Property History As %String(MAXLEN = "");
 
+/// O ID da chamada gerado pela LLM anteriormente (ex: "call_abc123")
+Property ToolCallId As %String(MAXLEN = 100);
+
+/// O JSON retornado pela execução da ferramenta
+Property ToolOutput As %String(MAXLEN = "");
+
+/// Definição das ferramentas (Schema)
 Property Parameter As %String(MAXLEN = "");
 
 Storage Default
@@ -33,6 +40,15 @@ Storage Default
 </Value>
 <Value name="5">
 <Value>Parameter</Value>
+</Value>
+<Value name="6">
+<Value>Tool</Value>
+</Value>
+<Value name="7">
+<Value>ToolCallId</Value>
+</Value>
+<Value name="8">
+<Value>ToolOutput</Value>
 </Value>
 </Data>
 <DefaultData>LLMRequestDefaultData</DefaultData>

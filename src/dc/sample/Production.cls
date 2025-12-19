@@ -111,6 +111,8 @@ XData ProductionDefinition
     <Setting Target="Adapter" Name="Tools">place_order, get_order, handoff_to_agent</Setting>
     <Setting Target="Adapter" Name="Target">order_taker</Setting>
   </Item>
+  <Item Name="Tool.GetMenu" Category="Tools" ClassName="dc.sample.operation.Menu" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
+  </Item>
 </Production>
 }
 

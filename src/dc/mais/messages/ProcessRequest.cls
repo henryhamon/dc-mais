@@ -10,8 +10,6 @@ Property Assignee As %String(%JSONFIELDNAME = "assignee", MAXLEN = "");
 /// Agent Payload
 Property Content As %String(%JSONFIELDNAME = "content", MAXLEN = "");
 
-Property Tools As list Of dc.mais.messages.FunctionCall(%JSONFIELDNAME = "tools");
-
 Property History As %String(%JSONFIELDNAME = "history", MAXLEN = "");
 
 Storage Default

@@ -1,4 +1,4 @@
-Class dc.mais.messages.LLMResponse Extends (Ens.Response, %JSON.Adaptor)
+Class dc.mais.messages.LLMResponse Extends (Ens.Response, %JSON.Adaptor, %XML.Adaptor)
 {
 
 /// The model used for generation
@@ -10,11 +10,11 @@ Property Choices As %String(MAXLEN = "");
 /// Content returned (JSON string)
 Property Content As %String(MAXLEN = "");
 
+Property ToolCalls As %String(%JSONFIELDNAME = "tool_calls_raw", MAXLEN = "");
+
+// Property ToolCalls As list Of dc.mais.messages.FunctionCall(%JSONFIELDNAME = "tool_calls");
+
 /// Tools (JSON string)
-Property ToolCalls As %String(%JSONFIELDNAME = "tool_calls", MAXLEN = "");
-
-Property FunctionCall As %String(%JSONFIELDNAME = "function_call", MAXLEN = "");
-
 /// Token usage statistics (JSON string)
 Property Usage As %String(MAXLEN = "");
 
@@ -61,9 +61,6 @@ Storage Default
 </Value>
 <Value name="6">
 <Value>Error</Value>
-</Value>
-<Value name="7">
-<Value>FunctionCall</Value>
 </Value>
 </Data>
 <DefaultData>LLMResponseDefaultData</DefaultData>
