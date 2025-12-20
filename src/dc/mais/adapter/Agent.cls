@@ -20,7 +20,7 @@ Property OutputInstructions As %String(MAXLEN = 1000);
 Property Tasks As %String(MAXLEN = 1000);
 
 /// List of callable functions available to the agent
-Property Tools As %String(MAXLEN = 1000);
+Property Tools As %String(MAXLEN = 10000);
 
 /// Name of the next agent in the workflow sequence (None if final agent)
 Property Target As %String(MAXLEN = 1000);
@@ -39,23 +39,29 @@ Property Verbose As %Boolean [ InitialExpression = 1 ];
 Method GetAgentInstructions(Output oPrompt As %String) As %String
 {
     Set tSC = $$$OK
+    Set oPrompt = "" // Garante que não é nulo
     Try {
-        Set prompt = "You are "_..Name_", a specialized agent"_$C(10)
+        Set prompt = "You are "_..Name_", a specialized agent."_$C(10)
         Set:(..Role '= "") prompt = prompt_"## Your Role: "_..Role_$C(10)
         Set:(..Goal '= "") prompt = prompt_"## Your Goal: "_..Goal_$C(10)
-        Set:(..Tasks '= "") prompt = prompt_"## Your tasks: "_..Tasks_$C(10)
+        Set:(..Tasks '= "") prompt = prompt_"## Your Tasks: "_..Tasks_$C(10)
         Set:(..OutputInstructions'= "") prompt = prompt_"## Output Instructions: "_..OutputInstructions_$C(10)
+        
+        // Regras de Tools
         If (..Tools '= "") {
             Set prompt = prompt_"## Tool Usage Guidelines:"_$C(10)
             Set prompt = prompt_"- You have access to functions (tools) to get real data."_$C(10)
-            Set prompt = prompt_"- You MUST call the function natively when needed."_$C(10) // "Call natively" é melhor que "Generate JSON"
+            Set prompt = prompt_"- You MUST call the function natively when needed."_$C(10)
             Set prompt = prompt_"- Do NOT guess or invent data. Use the function."_$C(10)
             Set prompt = prompt_"- NEVER write the function call JSON in the response text. Just trigger the function."_$C(10)
         }
-        Set oPrompt = prompt_"# Remember: You are part of a multi-agent system. "
-    ;Use the handoff_to_agent tool to transfer control when appropriate"
+        
+        Set prompt = prompt_"# Remember: You are part of a multi-agent system."
+        Set oPrompt = prompt
+        
     } Catch ex {
         Set tSC=ex.AsStatus()
+        $$$LOGERROR("Erro ao gerar instruções: "_ex.DisplayString())
     }
     Return tSC
 }
@@ -72,6 +78,55 @@ Method ValidateAgent() As %Status
     }
     // Add more field-level checks here if needed.
     Quit sc
+}
+
+/// Returns the complete list of tools (Specific + Handoff)
+Method GetComputedTools() As %String
+{
+    // Default Handoff Tool Definition
+    Set tHandoffTool = {
+        "type": "function",
+        "function": {
+            "name": "handoff_to_agent",
+            "description": "Transfer the conversation to another agent when you cannot handle the request or have finished your task.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "target_agent": {
+                        "type": "string",
+                        "description": "The target agent's name (e.g., 'OrderTaker', 'MenuExpert', 'OrderConfirmer')."
+                    },
+                    "reason": {
+                        "type": "string",
+                        "description": "The reason for transferring context."
+                    }
+                },
+                "required": ["target_agent", "reason"]
+            }
+        }
+    }
+
+    // Initialize the Tools Array
+    Set tToolsArray = []
+    
+    // If the agent already has tools configured, add them first
+    If (..Tools '= "") {
+        Try {
+            Set tUserTools = [].%FromJSON(..Tools)
+            Set iter = tUserTools.%GetIterator()
+            While iter.%GetNext(.key, .val) {
+                Do tToolsArray.%Push(val)
+            }
+        } Catch {
+            // Fallback se for string mal formatada, logar erro ou ignorar
+            $$$LOGWARNING("Erro ao parsear Tools do agente: "_..Name)
+        }
+    }
+
+    // Add the Handoff Tool (Always)
+    Do tToolsArray.%Push(tHandoffTool)
+
+    Return tToolsArray.%ToJSON()
 }
 
 }
