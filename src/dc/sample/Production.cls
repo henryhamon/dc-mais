@@ -30,19 +30,18 @@ XData ProductionDefinition
   <Item Name="Agent.MenuExpert" Category="Agents" ClassName="dc.mais.operation.Agent" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
     <Setting Target="Adapter" Name="Goal">Help customers make informed decisions by sharing expertise about dishes</Setting>
     <Setting Target="Adapter" Name="Name">MenuExpert</Setting>
-    <Setting Target="Adapter" Name="OutputInstructions">- Provide detailed, appetizing descriptions of dishes
-- Share interesting facts about French cuisine and preparations
-- Suggest wine pairings and complementary items
-- Answer questions about ingredients and dietary restrictions
-- Be passionate and knowledgeable about the food
-- When customer decides to order, confirm and handoff to OrderTaker</Setting>
+    <Setting Target="Adapter" Name="OutputInstructions">- Provide detailed, appetizing descriptions ONLY when asked for information
+- Share interesting facts about French cuisine
+- Suggest pairings
+- STOP immediately if the user wants to order
+- DO NOT ask for confirmation to add items. Handoff immediately.
+- DO NOT process the order yourself.</Setting>
     <Setting Target="Adapter" Name="Role">Provide detailed information about menu items, ingredients, and recommendations</Setting>
-    <Setting Target="Adapter" Name="Tasks">- Explain menu items in detail with passion and knowledge
-- Recommend dishes based on customer preferences and dietary needs
+    <Setting Target="Adapter" Name="Tasks"><![CDATA[- Explain menu items in detail with passion and knowledge
+- Recommend dishes based on customer preferences
 - Suggest appetizers, mains, desserts, and beverage pairings
-- Answer questions about ingredients, preparation methods, and flavors
-- Identify when customer is ready to order
-- Handoff to OrderTaker when customer decides what to order</Setting>
+- Answer questions about ingredients
+- CRITICAL: If the customer indicates intent to order (e.g., "I want", "I'll have"), IMMEDIATELY use handoff_to_agent("OrderTaker"). Do not write a response first.</Setting>]]></Setting>
     <Setting Target="Adapter" Name="Target">order_taker</Setting>
     <Setting Target="Adapter" Name="Tools">[{
         "type": "function",
@@ -74,25 +73,61 @@ XData ProductionDefinition
 - Use get_order to track current order status
 - Ensure all customer requests are captured accurately
 - Handoff to OrderConfirmer when customer finishes orderin</Setting>
-    <Setting Target="Adapter" Name="Tools">add_to_order, get_order, clear_order, handoff_to_agent</Setting>
-  </Item>
-  <Item Name="Agent.OrderConfirmer" Category="Agents" ClassName="dc.mais.operation.Agent" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
-    <Setting Target="Adapter" Name="Goal">Ensure 100% order accuracy by double-checking all details with the customer</Setting>
-    <Setting Target="Adapter" Name="Name">OrderConfirmer</Setting>
-    <Setting Target="Adapter" Name="OutputInstructions">- Display the complete order summary clearly and professionally
-- Ask customer to review and confirm each item
-- If changes needed, acknowledge and handoff back to OrderTaker
-- If confirmed, ask for table number and handoff to OrderSubmitter
-- Be thorough and patient</Setting>
-    <Setting Target="Adapter" Name="Role">Review and confirm orders before sending to kitchen</Setting>
-    <Setting Target="Adapter" Name="Target">order_submitter</Setting>
-    <Setting Target="Adapter" Name="Tasks">- Use confirm_order to display complete order summary
-- Present each item clearly with prices and total
-- Ask customer to confirm or request modifications
-- If modifications needed, handoff back to OrderTakerBot
-- If confirmed, collect table number
-- Handoff to OrderSubmitter with table number</Setting>
-    <Setting Target="Adapter" Name="Tools">confirm_order, get_order, handoff_to_agent</Setting>
+    <Setting Target="Adapter" Name="Tools">[
+    {
+        "type": "function",
+        "function": {
+            "name": "add_to_order",
+            "description": "Add an item to the current order. Use this when the customer wants to add a dish or drink.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "item_name": {
+                        "type": "string",
+                        "description": "The exact name of the item from the menu (e.g., 'Coq au Vin', 'Coke')."
+                    },
+                    "quantity": {
+                        "type": "integer",
+                        "description": "The number of items to order. Defaults to 1 if not specified."
+                    },
+                    "extras": {
+                        "type": "string",
+                        "description": "Any extras or sides requested (e.g., 'extra cheese', 'side salad')."
+                    },
+                    "special_requests": {
+                        "type": "string",
+                        "description": "Special dietary requests or modifications (e.g., 'no onions', 'sauce on the side')."
+                    }
+                },
+                "required": ["item_name"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_order",
+            "description": "Retrieve the current list of items in the order to review/confirm with the customer.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "clear_order",
+            "description": "Remove all items from the current order. Use only if customer wants to restart completely.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
+        }
+    }
+]</Setting>
   </Item>
   <Item Name="Agent.OrderSubmitter" Category="Agents" ClassName="dc.mais.operation.Agent" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
     <Setting Target="Adapter" Name="Goal">Complete the ordering process by submitting to kitchen and providing confirmation detail</Setting>
@@ -108,10 +143,43 @@ XData ProductionDefinition
 - Provide order confirmation with order ID
 - Share estimated preparation time with customer
 - Thank customer and wish them an excellent meal</Setting>
-    <Setting Target="Adapter" Name="Tools">place_order, get_order, handoff_to_agent</Setting>
+    <Setting Target="Adapter" Name="Tools">[
+    {
+        "type": "function",
+        "function": {
+            "name": "place_order",
+            "description": "Finalize and submit the order to the kitchen. Returns the order ID and total.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_order",
+            "description": "Get the final order details to confirm before submitting.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
+        }
+    }
+]</Setting>
     <Setting Target="Adapter" Name="Target">order_taker</Setting>
   </Item>
   <Item Name="Tool.GetMenu" Category="Tools" ClassName="dc.sample.operation.Menu" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
+  </Item>
+  <Item Name="Tool.AddToOrder" Category="Tools" ClassName="dc.sample.operation.AddToOrder" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
+  </Item>
+  <Item Name="Tool.ClearOrder" Category="Tools" ClassName="dc.sample.operation.ClearOrder" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
+  </Item>
+  <Item Name="Tool.GetOrder" Category="Tools" ClassName="dc.sample.operation.GetOrder" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
+  </Item>
+  <Item Name="Tool.PlaceOrder" Category="Tools" ClassName="dc.sample.operation.PlaceOrder" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
   </Item>
 </Production>
 }
