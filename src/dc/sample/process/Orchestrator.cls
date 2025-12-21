@@ -84,11 +84,34 @@ XData BPL [ XMLNamespace = "http://www.intersystems.com/bpl" ]
 </property>
 <property name='OrderQuantity' type='%Integer' initialexpression='1' instantiate='0' />
 </context>
-<sequence xend='200' yend='1300' >
+<sequence xend='200' yend='1400' >
 <assign name="ToolCall" property="context.ToolCall" value="&quot;&quot;" action="set" languageOverride="" xpos='200' ypos='250' />
 <assign name="Assignee" property="context.target" value="request.Assignee" action="set" languageOverride="" xpos='200' ypos='350' />
 <assign name="Sender" property="context.origin" value="request.Sender" action="set" languageOverride="" xpos='200' ypos='450' />
-<assign name="Content" property="context.userContent" value="request.Content" action="set" languageOverride="" xpos='200' ypos='550' />
+<assign name="Content" property="context.userContent" value="request.Content" action="set" languageOverride="" xpos='669' ypos='405' />
+<code name='Initialize History' xpos='943' ypos='485' >
+<![CDATA[
+    // 1. Load the Request's History
+    Set context.History = request.History
+    If (context.History = "") { Set context.History = "[]" }
+    
+    // 2. Add the Current User Input to the History IMMEDIATELY
+    // This ensures the LLM sees the complete context and the input appears in the final response
+    If (context.userContent '= "") {
+        Set tHist = [].%FromJSON(context.History)
+        
+        Set tUserMsg = {}
+        Set tUserMsg.role = "user"
+        Set tUserMsg.content = context.userContent
+        
+        Do tHist.%Push(tUserMsg)
+        Set context.History = tHist.%ToJSON()
+        
+        // 3. Clear userContent to avoid duplication
+        // Since it's already added to the History, there's no need to send it separately to the LLM Adapter
+        Set context.userContent = "" 
+    }]]>
+</code>
 <if name='CheckBegining' condition='(context.target="")&amp;&amp;(request.History="")' xpos='200' ypos='650' xend='200' yend='900' >
 <true>
 <assign name="Begin" property="context.target" value="&quot;greeter&quot;" action="set" languageOverride="" xpos='335' ypos='800' />
@@ -160,7 +183,7 @@ XData BPL [ XMLNamespace = "http://www.intersystems.com/bpl" ]
 <if name='Check Tool Call' condition='context.ToolCall=""' xpos='200' ypos='550' xend='200' yend='1350' >
 <true>
 <assign name="Stop Loop" property="context.RunLoop" value="0" action="set" languageOverride="" xpos='200' ypos='700' />
-<code name='update history' xpos='199' ypos='976' >
+<code name='update history' xpos='200' ypos='800' >
 <annotation><![CDATA[Update History Final Response]]></annotation>
 <![CDATA[
     If (context.CurrentResponse '= "") {
@@ -336,6 +359,7 @@ XData BPL [ XMLNamespace = "http://www.intersystems.com/bpl" ]
 </while>
 <assign name="History" property="response.History" value="context.History" action="set" languageOverride="" xpos='200' ypos='1100' />
 <assign name="Content" property="response.Content" value="context.CurrentResponse" action="set" languageOverride="" xpos='200' ypos='1200' />
+<assign name="set Agent" property="response.CurrentAgent" value="context.target" action="set" languageOverride="" xpos='200' ypos='1300' />
 </sequence>
 </process>
 }

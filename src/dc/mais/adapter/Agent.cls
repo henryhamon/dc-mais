@@ -22,7 +22,7 @@ Property Tasks As %String(MAXLEN = 1000);
 /// List of callable functions available to the agent
 Property Tools As %String(MAXLEN = 10000);
 
-/// Name of the next agent in the workflow sequence (None if final agent)
+/// Name of the next agents allowed (Comma-separated, e.g., "OrderTaker,OrderSubmitter")
 Property Target As %String(MAXLEN = 1000);
 
 // Comma-separated or JSON for extensibility
@@ -47,7 +47,13 @@ Method GetAgentInstructions(Output oPrompt As %String) As %String
         Set:(..Tasks '= "") prompt = prompt_"## Your Tasks: "_..Tasks_$C(10)
         Set:(..OutputInstructions'= "") prompt = prompt_"## Output Instructions: "_..OutputInstructions_$C(10)
         
-        // Regras de Tools
+        If (..Target '= "") {
+            Set prompt = prompt_"## Handoff Capabilities:"_$C(10)
+            Set prompt = prompt_"- You can transfer the conversation ONLY to the following agents: "_..Target_$C(10)
+            Set prompt = prompt_"- Use the 'handoff_to_agent' tool with one of these exact names."_$C(10)
+        }
+
+        // Tools rules
         If (..Tools '= "") {
             Set prompt = prompt_"## Tool Usage Guidelines:"_$C(10)
             Set prompt = prompt_"- You have access to functions (tools) to get real data."_$C(10)

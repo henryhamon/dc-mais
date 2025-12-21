@@ -25,7 +25,7 @@ XData ProductionDefinition
 - Answer general questions about the bistro
 - Identify customer needs (menu info, ordering, or general questions)
 - Handoff to MenuExpert when customer wants detailed menu information</Setting>
-    <Setting Target="Adapter" Name="Target">menu_expert</Setting>
+    <Setting Target="Adapter" Name="Target">menu_expert, order_taker</Setting>
   </Item>
   <Item Name="Agent.MenuExpert" Category="Agents" ClassName="dc.mais.operation.Agent" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
     <Setting Target="Adapter" Name="Goal">Help customers make informed decisions by sharing expertise about dishes</Setting>
@@ -128,6 +128,7 @@ XData ProductionDefinition
         }
     }
 ]</Setting>
+    <Setting Target="Adapter" Name="Target">greeter</Setting>
   </Item>
   <Item Name="Agent.OrderSubmitter" Category="Agents" ClassName="dc.mais.operation.Agent" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
     <Setting Target="Adapter" Name="Goal">Complete the ordering process by submitting to kitchen and providing confirmation detail</Setting>
@@ -169,7 +170,7 @@ XData ProductionDefinition
         }
     }
 ]</Setting>
-    <Setting Target="Adapter" Name="Target">order_taker</Setting>
+    <Setting Target="Adapter" Name="Target">order_submitter, menu_expert</Setting>
   </Item>
   <Item Name="Tool.GetMenu" Category="Tools" ClassName="dc.sample.operation.Menu" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
   </Item>
