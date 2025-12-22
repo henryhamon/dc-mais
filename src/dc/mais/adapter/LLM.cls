@@ -92,11 +92,11 @@ Method CallLiteLLM(pRequest As dc.mais.messages.LLMRequest, Output pResponse As 
         Try {
             Set model = $Select(pRequest.Model '= "": pRequest.Model, 1: ..GetDefaultModel())
             
-            // 1. Prepare History
+            // Prepare History
             Set jsonHistory = [].%FromJSON(pRequest.History)
             Set:(jsonHistory="") jsonHistory = []
             
-            // 2. Inject Tool Output if present (Close the Loop logic)
+            // Inject Tool Output if present (Close the Loop logic)
             If (pRequest.ToolCallId '= "") && (pRequest.ToolOutput '= "") {
                 Set tToolMsg = {}
                 Set tToolMsg.role = "tool"
@@ -105,22 +105,22 @@ Method CallLiteLLM(pRequest As dc.mais.messages.LLMRequest, Output pResponse As 
                 Do jsonHistory.%Push(tToolMsg)
             }
             
-            // 3. Add current user content/prompt only if not empty
+            // Add current user content/prompt only if not empty
             If (pRequest.Content '= "") {
                 Do jsonHistory.%Push({"role": "user", "content": (pRequest.Content)})
             }
             
-            // 4. Add extra user content field if present
+            // Add extra user content field if present
             If (pRequest.UserContent'="") {
                 Do jsonHistory.%Push({"role": "user", "content": (pRequest.UserContent)})
             }
             
             Set strMessages = jsonHistory.%ToJSON()
 
-            // 5. Call Python Helper
+            // Call Python Helper
             Set tResponse = ..PyCompletion(model, strMessages, pRequest.Parameter, 1)
         
-            // 6. Map Response
+            // Map Response
             Set pResponse.Model = tResponse.model
             
             // Convert Python choices to IRIS DynamicArray
