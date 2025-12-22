@@ -260,6 +260,7 @@ XData BPL [ XMLNamespace = "http://www.intersystems.com/bpl" ]
 <call name='Tool Runner' target='ToolRunner' async='0' xpos='875' ypos='950' >
 <request type='dc.mais.messages.ToolRequest' >
 <assign property="callrequest.ToolName" value="context.CurrentToolName" action="set" languageOverride="" />
+<assign property="callrequest.Arguments" value="context.ToolCall" action="set" languageOverride="" />
 </request>
 <response type='dc.mais.messages.ToolResponse' >
 <assign property="context.ToolResultData" value="callresponse.Result" action="set" languageOverride="" />
