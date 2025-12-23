@@ -3,8 +3,8 @@
   <Document name="dc-mais.ZPM">
     <Module>
       <Name>dc-mais</Name>
-      <Version>0.0.12</Version>
-      <Description>MAIS</Description>
+      <Version>1.0.0</Version>
+      <Description>MAIS - Multi-Agent Interoperability System for InterSystems IRIS</Description>
       <Packaging>module</Packaging>
       <SourcesRoot>src</SourcesRoot>
       <Resource Name="dc.mais.PKG"/>
