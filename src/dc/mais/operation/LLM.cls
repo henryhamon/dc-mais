@@ -16,8 +16,16 @@ Method CallLiteLLM(pRequest As dc.mais.messages.LLMRequest, Output oResponse As 
         Set oResponse = ##class(dc.mais.messages.LLMResponse).%New()
         
         // Call the adapter
-        Set tSC = ..Adapter.CallLiteLLM(pRequest, .oResponse)
-        If $$$ISERR(tSC) Quit
+
+        // Python version
+        Set:(..Adapter.PythonVersion) oResponse = ..Adapter.CallLiteLLM(pRequest)
+
+        // ObjectScript version
+        If ('..Adapter.PythonVersion) {
+            Set tSC = ..Adapter.CallLiteLLM(pRequest, .oResponse)
+            If $$$ISERR(tSC) Quit
+        }
+
     }
     Catch ex {
         Set tSC = ex.AsStatus()

@@ -4,7 +4,7 @@ Class dc.mais.adapter.LLM Extends Ens.OutboundAdapter
 {
 
 /// Controls which properties are visible in the production settings UI
-Parameter SETTINGS = "APIKeysConfig:Basic:textarea?rows=5&cols=50,BaseURL,Timeout,DefaultModel,MaxRetries,RetryDelay";
+Parameter SETTINGS = "APIKeysConfig:Basic:textarea?rows=5&cols=50,BaseURL,Timeout,DefaultModel,MaxRetries,RetryDelay,PythonVersion:Basic";
 
 /// JSON configuration for API keys in Production.Credentials
 /// Example: ["OPENAI_API_KEY","ANTHROPIC_API_KEY"]
@@ -25,6 +25,9 @@ Property MaxRetries As %Integer [ InitialExpression = 0 ];
 /// Retry delay in seconds between attempts
 Property RetryDelay As %Numeric [ InitialExpression = 1 ];
 
+/// Indicate which version should be used; ObjectScript is the default.
+Property PythonVersion As %Boolean [ InitialExpression = 1 ];
+
 /// Private properties for Python caches
 Property os As %SYS.Python [ Private ];
 
@@ -32,23 +35,22 @@ Method OnInit() As %Status
 {
     Set tSC = $$$OK
     Try {
-        // Initialize basic libraries
-        Set ..os = ##class(%SYS.Python).Import("os")
-        
-        // Configure API Keys in Python Environment
-        If ..APIKeysConfig '= "" {
-            Set tKeyConfig = $ListFromString(..APIKeysConfig,",")
-            Set pointer = 0
-            While $ListNext(tKeyConfig, pointer, tKeyName) {
-                Set credential = ##class(Ens.Config.Credentials).%OpenId(tKeyName)
-                Continue:(credential="")
-                Do ..os.environ."__setitem__"(tKeyName, credential.PasswordGet())
-            }
-        }
+        Do ..Initialize()
     } Catch e {
         Set tSC = e.AsStatus()
     }
     Quit tSC
+}
+
+/// Configure API Keys in Python Environment
+Method Initialize() [ Language = python ]
+{
+    import os
+    for tKeyName in self.APIKeysConfig.split(','): 
+        credential = iris.cls("Ens.Config.Credentials")._OpenId(tKeyName.strip())
+        if not credential:
+            continue
+        os.environ[tKeyName] = credential.PasswordGet()
 }
 
 /// Helper method in pure Python
@@ -80,7 +82,7 @@ ClassMethod PyCompletion(model As %String, messagesJson As %String, toolsJson As
     return litellm.completion(**kwargs)
 }
 
-Method CallLiteLLM(pRequest As dc.mais.messages.LLMRequest, Output pResponse As dc.mais.messages.LLMResponse) As %Status
+Method CallLiteLLMObjectScript(pRequest As dc.mais.messages.LLMRequest, Output pResponse As dc.mais.messages.LLMResponse) As %Status
 {
     Set tSC = $$$OK
     Set tAttempt = 0
@@ -171,6 +173,83 @@ Method CallLiteLLM(pRequest As dc.mais.messages.LLMRequest, Output pResponse As 
         }.%ToJSON()
     }
     Quit tSC
+}
+
+Method CallLiteLLM(pRequest As dc.mais.messages.LLMRequest) As dc.mais.messages.LLMResponse [ Language = python ]
+{
+    import litellm
+    import json
+    import time
+    import iris
+
+    t_attempt = 0
+    max_retries = self.MaxRetries
+    retry_delay = self.RetryDelay
+
+
+    last_error = None
+    pResponse = iris.cls("dc.mais.messages.LLMResponse")._New()
+
+    while t_attempt <= max_retries:
+        t_attempt += 1
+
+        try:
+            model = pRequest.Model
+            if not model:
+                model = self.GetDefaultModel()
+
+            messages = [{"role": "user", "content": pRequest.Content}]
+            
+            if pRequest.UserContent:
+                messages.append({"role": "user", "content": pRequest.UserContent})
+
+            response = litellm.completion(model=model, messages=messages)
+
+            pResponse.Model = response.model
+
+            choices_list = []
+            if hasattr(response, 'choices'):
+                for choice in response.choices:
+                    if hasattr(choice, 'model_dump'):
+                        choices_list.append(choice.model_dump())
+                    elif hasattr(choice, 'dict'):
+                        choices_list.append(choice.dict())
+                    else:
+                        choices_list.append(dict(choice))
+            
+            pResponse.Choices = json.dumps(choices_list)
+            if (len(response.choices) > 0 ):
+                pResponse.Content = response.choices[0].message.content
+
+            if hasattr(response, 'usage'):
+                if hasattr(response.usage, 'model_dump'):
+                    pResponse.Usage = json.dumps(response.usage.model_dump())
+                else:
+                    pResponse.Usage = json.dumps(dict(response.usage))
+
+            if hasattr(response, 'error') and response.error:
+                pResponse.Error = json.dumps(dict(response.error))
+
+            return pResponse
+
+        except Exception as e:
+            last_error = str(e)
+            
+            class_name = "dc.mais.adapter.LiteLLM"
+            iris.cls("Ens.Util.Log").LogError(class_name, "CallLiteLLM", f"LiteLLM call attempt {t_attempt} failed: {last_error}")
+
+            if t_attempt > max_retries:
+                break
+
+            time.sleep(retry_delay)
+
+    error_payload = {
+        "message": "All LiteLLM call attempts failed",
+        "details": last_error
+    }
+    pResponse.Error = json.dumps(error_payload)
+
+    return pResponse
 }
 
 ClassMethod hasattr(obj As %SYS.Python, attr As %String) [ Language = python ]
